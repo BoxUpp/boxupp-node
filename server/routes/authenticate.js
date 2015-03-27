@@ -5,6 +5,7 @@ module.exports = function(passport){
 
 	//sends successful login state back to angular
 	router.get('/success', function(req, res){
+		console.log("inside success");
 		res.send({state: 'success', user: req.user ? req.user : null});
 	});
 
@@ -25,6 +26,15 @@ module.exports = function(passport){
 		failureRedirect: '/auth/failure'
 	}));
 
+	//sign up using github
+	router.get('/github', passport.authenticate('github'));
+
+	router.get('/github/callback', 
+	  passport.authenticate('github', { 
+			successRedirect: '/auth/success',
+			failureRedirect: '/auth/failure' 
+	}));
+	
 	//log out
 	router.get('/signout', function(req, res) {
 		req.logout();

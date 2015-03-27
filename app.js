@@ -6,12 +6,22 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var session = require('express-session');
 var passport = require('passport');
-//initialize mongoose schemas
-require('./server/models/models');
+var acl = require('acl');
+
+require('./server/models/models');  //initialize mongoose schemas
 var index = require('./server/routes/index');
 var authenticate = require('./server/routes/authenticate')(passport);
-var mongoose = require('mongoose');                         //add for Mongo support
-mongoose.connect('mongodb://localhost/test');              //connect to Mongo
+var blogs = require('./server/routes/blogs');
+var mongoose = require('mongoose');                        
+
+var dbc = mongoose.connect('mongodb://localhost/test'); 
+//connect to Mongo
+
+  mongoose.connection.on('connected', function() {
+	  console.log("connecting to mongodb");
+    acl = new acl(new acl.mongodbBackend(mongoose.connection.db));
+	console.log("connected to mongodb");
+  });
 var app = express();
 
 // view engine setup
@@ -21,9 +31,9 @@ app.set('view engine', 'ejs');
 // uncomment after placing your favicon in /public
 //app.use(favicon(__dirname + '/public/favicon.ico'));
 app.use(logger('dev'));
-app.use(session({
+/*app.use(session({
   secret: 'keyboard cat'
-}));
+}));*/
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -33,6 +43,14 @@ app.use(passport.session());
 
 app.use('/', index);
 app.use('/auth', authenticate);
+app.use('/blogs',blogs);
+
+//allow cross origin request
+app.all('/*', function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  next();
+});
 //var auth = function(req, res, next){ if (!req.isAuthenticated()) res.send(401); else next(); };
 
 //app.use('/api', api);
@@ -47,6 +65,16 @@ app.use(function(req, res, next) {
 //// Initialize Passport
 var initPassport = require('./server/passport-init');
 initPassport(passport);
+
+/*acl.allow([
+    {
+        roles:['user'], 
+        allows:[
+            {resources:'blogs', permissions:'get'}
+        ]
+    }
+]);
+*/
 
 // error handlers
 
@@ -65,6 +93,7 @@ if (app.get('env') === 'development') {
 // production error handler
 // no stacktraces leaked to user
 app.use(function(err, req, res, next) {
+	console.log("bb");
     res.status(err.status || 500);
     res.render('error', {
         message: err.message,
@@ -74,3 +103,4 @@ app.use(function(err, req, res, next) {
 
 
 module.exports = app;
+

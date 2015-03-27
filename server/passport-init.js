@@ -2,6 +2,9 @@ var mongoose = require('mongoose');
 var User = mongoose.model('User');
 var LocalStrategy   = require('passport-local').Strategy;
 var bCrypt = require('bcrypt-nodejs');
+var acl = require('acl');
+var mongoose = require('mongoose');
+var GitHubStrategy   = require('passport-github').Strategy;
 
 module.exports = function(passport){
 
@@ -76,13 +79,55 @@ module.exports = function(passport){
 							console.log('Error in Saving user: '+err);  
 							throw err;  
 						}
+						acl = new acl(new acl.mongodbBackend(mongoose.connection.db));
+						console.log("here");
+
 						console.log(newUser.username + ' Registration succesful');    
+						acl.addUserRoles( newUser.username, 'user', function(err){
+						console.log("setting role = user");
+						});
 						return done(null, newUser);
 					});
 				}
 			});
 		})
 	);
+	
+	passport.use(new GitHubStrategy({
+			clientID: 'dcda0273cfd203abe900',
+			clientSecret: 'e8fd3b7fab884a3b9e0ae237c5cdd488c46287af',
+			callbackURL: "http://localhost:3000/auth/github/callback"
+		},
+	  function(accessToken, refreshToken, profile, done) {
+			 User.findOne({
+            'githubId': profile.id 
+        }, function(err, user) {
+            if (err) {
+                return done(err);
+            }
+			console.log("user details: "+JSON.stringify(profile));
+            //No user was found... so create a new user with values from Facebook (all the profile. stuff)
+            if (!user) {
+                user = new User({
+                   // username: profile.displayName,
+                    //email: profile.emails[0].value,
+                    username: profile.username,
+                  //  provider: 'github',
+                    githubId: profile.id
+                });
+                user.save(function(err) {
+                    if (err) console.log(err);
+                    return done(err, user);
+                });
+            } else {
+                //found user. Return
+                return done(err, user);
+            }
+        });
+	  }
+	));
+	
+
 	
 	var isValidPassword = function(user, password){
 		return bCrypt.compareSync(password, user.password);
