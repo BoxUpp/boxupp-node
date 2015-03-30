@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 var debug = require('debug')('Start');
 var app = require('../app');
+var log4js = require('log4js');
+log4js.configure('./config/log4js.json');
+var log = log4js.getLogger("start");
 
 app.set('port', process.env.PORT || 3000);
 
 var server = app.listen(app.get('port'), function() {
-  debug('Express server listening on port ' + server.address().port);
+  log.info('Express server listening on port ' + server.address().port);
 });

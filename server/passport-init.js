@@ -5,6 +5,9 @@ var bCrypt = require('bcrypt-nodejs');
 var acl = require('acl');
 var mongoose = require('mongoose');
 var GitHubStrategy   = require('passport-github').Strategy;
+var log4js = require('log4js');
+var log = log4js.getLogger("auth");
+log4js.configure('./config/log4js.json');
 
 module.exports = function(passport){
 
@@ -17,6 +20,7 @@ module.exports = function(passport){
 	passport.deserializeUser(function(id, done) {
 		User.findById(id, function(err, user) {
 			console.log('deserializing user:',user.username);
+			log.error(err);
 			done(err, user);
 		});
 	});
@@ -29,8 +33,9 @@ module.exports = function(passport){
 			User.findOne({ 'username' :  username }, 
 				function(err, user) {
 					// In case of any error, return using the done method
-					if (err)
-						return done(err);
+					if (err){			
+						log.error(err);
+						return done(err);}
 					// Username does not exist, log the error and redirect back
 					if (!user){
 						console.log('User Not Found with username '+username);
@@ -58,6 +63,7 @@ module.exports = function(passport){
 			User.findOne({ 'username' :  username }, function(err, user) {
 				// In case of any error, return using the done method
 				if (err){
+					log.error(err);
 					console.log('Error in SignUp: '+err);
 					return done(err);
 				}
@@ -76,11 +82,10 @@ module.exports = function(passport){
 					// save the user
 					newUser.save(function(err) {
 						if (err){
-							console.log('Error in Saving user: '+err);  
+							log.error(err);  
 							throw err;  
 						}
 						acl = new acl(new acl.mongodbBackend(mongoose.connection.db));
-						console.log("here");
 
 						console.log(newUser.username + ' Registration succesful');    
 						acl.addUserRoles( newUser.username, 'user', function(err){
@@ -95,14 +100,15 @@ module.exports = function(passport){
 	
 	passport.use(new GitHubStrategy({
 			clientID: 'dcda0273cfd203abe900',
-			clientSecret: 'e8fd3b7fab884a3b9e0ae237c5cdd488c46287af',
-			callbackURL: "http://localhost:3000/auth/github/callback"
+			clientSecret: 'e8fd3b7fab884a3b9e0ae237c5cdd488c46287af'
+			//callbackURL: "http://localhost:3000/auth/github/callback"
 		},
 	  function(accessToken, refreshToken, profile, done) {
 			 User.findOne({
             'githubId': profile.id 
         }, function(err, user) {
             if (err) {
+				log.error(err);
                 return done(err);
             }
 			console.log("user details: "+JSON.stringify(profile));
@@ -116,7 +122,10 @@ module.exports = function(passport){
                     githubId: profile.id
                 });
                 user.save(function(err) {
-                    if (err) console.log(err);
+                    if (err) {
+						log.error(err);
+						console.log(err);
+					}
                     return done(err, user);
                 });
             } else {
