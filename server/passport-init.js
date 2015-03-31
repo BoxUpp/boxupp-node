@@ -1,30 +1,48 @@
+	/**
+	 * Passport is authentication middleware for Node.js.
+	 * A comprehensive set of strategies support authentication using a username and password, Facebook, Twitter, Github, and more.
+	 * Models used : User
+	 *@requires passport,mongoose,bCrypt,log4js,passport-local,passport-github,acl
+	 *@class Passport-initialization
+	 *@static
+	 */
 var mongoose = require('mongoose');   
 var User = mongoose.model('User');
 var LocalStrategy   = require('passport-local').Strategy;
 var bCrypt = require('bcrypt-nodejs');
 var acl = require('acl');
-var mongoose = require('mongoose');
 var GitHubStrategy   = require('passport-github').Strategy;
 var log4js = require('log4js');
 var log = log4js.getLogger("auth");
 log4js.configure('./config/log4js.json');
 
 module.exports = function(passport){
-
-	// Passport needs to be able to serialize and deserialize users to support persistent login sessions
+	/**
+	 * Passport needs to be able to serialize and de-serialize users to support persistent login sessions
+	@method passport.serializeUser()
+	*/ 
 	passport.serializeUser(function(user, done) {
 		console.log('serializing user:',user.username);
 		done(null, user._id);
 	});
-
+	/**
+	 * Passport needs to be able to serialize and de-serialize users to support persistent login sessions
+	@method passport.deserializeUser()
+	*/ 
 	passport.deserializeUser(function(id, done) {
 		User.findById(id, function(err, user) {
 			console.log('deserializing user:',user.username);
-			log.error(err);
+			if(err){
+				log.error(err);
+				}
 			done(err, user);
 		});
 	});
-
+	/**
+	 * Local Strategy for logging in users. Local Strategy means the user who have signed up without any third party provider.
+	 * Check for user in database and if find one, then matches the password. If both match, return user, which will be treated like success.
+	@method passport.use('login', new LocalStrategy())
+	*/ 
 	passport.use('login', new LocalStrategy({
 			passReqToCallback : true
 		},
@@ -53,7 +71,11 @@ module.exports = function(passport){
 			);
 		}
 	));
-
+	/**
+	 * Local Strategy for signing up users. Local Strategy means the user are signing up without any third party provider.
+	  * Check for user in database and if find one, then send 'User already exist', otherwise create one.
+	@method passport.use('signup', new LocalStrategy())
+	*/ 
 	passport.use('signup', new LocalStrategy({
 			passReqToCallback : true // allows us to pass back the entire request to the callback
 		},
@@ -85,7 +107,7 @@ module.exports = function(passport){
 							log.error(err);  
 							throw err;  
 						}
-						acl = new acl(new acl.mongodbBackend(mongoose.connection.db));
+						acl = new acl(new acl.mongodbBackend(mongoose.connection.db,'_acl'));
 
 						console.log(newUser.username + ' Registration succesful');    
 						acl.addUserRoles( newUser.username, 'user', function(err){
@@ -97,7 +119,12 @@ module.exports = function(passport){
 			});
 		})
 	);
-	
+
+	/**
+	 * Signup/Login user with Github.
+	 * Redirect the user to github and upon success, check the user in database. If it does not exist, then create one.
+	@method passport.use(new GitHubStrategy())
+	*/ 	
 	passport.use(new GitHubStrategy({
 			clientID: 'dcda0273cfd203abe900',
 			clientSecret: 'e8fd3b7fab884a3b9e0ae237c5cdd488c46287af'
@@ -136,12 +163,23 @@ module.exports = function(passport){
 	  }
 	));
 	
-
-	
+	/**
+	 * Compare the password entered by user with the password(encrypted) saved in database.
+	@method isValidPassword
+	@param user {Object} user object from database (whose user name is matched).
+	@param password {String} Password entered by user
+	@return true, if the password match, else false.
+	*/ 
 	var isValidPassword = function(user, password){
 		return bCrypt.compareSync(password, user.password);
 	};
 	// Generates hash using bCrypt
+	/**
+	 * Generates hash for password using bCrypt
+	@method createHash
+	@param password {String} Password entered by user.
+	@return hash for password.
+	*/ 
 	var createHash = function(password){
 		return bCrypt.hashSync(password, bCrypt.genSaltSync(10), null);
 	};

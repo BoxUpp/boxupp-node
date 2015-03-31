@@ -5,11 +5,10 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var session = require('express-session');
 var passport = require('passport');
-var acl = require('acl');
+var acl = require('acl');   //Access Control List for creating different user roles.
 var log4js = require('log4js');
 var log = log4js.getLogger("app");
 log4js.configure('./config/log4js.json');
-
 require('./server/models/models');  //initialize mongoose schemas
 var index = require('./server/routes/index');
 var authenticate = require('./server/routes/authenticate')(passport);
@@ -18,13 +17,12 @@ var mongoose = require('mongoose');
 
 var dbc = mongoose.connect('mongodb://localhost/test'); 
 //connect to Mongo
-
-  mongoose.connection.on('connected', function() {
+acl = new acl(new acl.mongodbBackend(mongoose.connection.db));
+/*  mongoose.connection.on('connected', function() {
 	  console.log("connecting to mongodb");
-    acl = new acl(new acl.mongodbBackend(mongoose.connection.db));
 	console.log("connected to mongodb");
   });
-
+*/
 var app = express();
 
 // view engine setup
@@ -51,7 +49,7 @@ app.use(passport.session());
 
 app.use('/', index);
 app.use('/auth', authenticate);
-app.use('/blogs',blogs);
+app.use('/blogs',acl.middleware(),blogs);
 
 //allow cross origin request
 app.all('/*', function(req, res, next) {
@@ -74,15 +72,15 @@ app.use(function(req, res, next) {
 var initPassport = require('./server/passport-init');
 initPassport(passport);
 
-/*acl.allow([
+acl.allow([
     {
         roles:['user'], 
         allows:[
-            {resources:'blogs', permissions:'get'}
+            {resources:'auth', permissions:'get'}
         ]
     }
 ]);
-*/
+
 
 // error handlers
 
