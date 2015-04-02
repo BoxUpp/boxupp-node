@@ -13,16 +13,26 @@ require('./server/models/models');  //initialize mongoose schemas
 var index = require('./server/routes/index');
 var authenticate = require('./server/routes/authenticate')(passport);
 var blogs = require('./server/routes/blogs');
-var mongoose = require('mongoose');                        
+var mongoose = require('mongoose');        
+var router = express.Router();
+                
 
 var dbc = mongoose.connect('mongodb://localhost/test'); 
 //connect to Mongo
-acl = new acl(new acl.mongodbBackend(mongoose.connection.db));
-/*  mongoose.connection.on('connected', function() {
+ mongoose.connection.on('connected', function() {
 	  console.log("connecting to mongodb");
+	  //acl = new acl(new acl.mongodbBackend(mongoose.connection.db));
+    acl = new acl(new acl.mongodbBackend(mongoose.connection.db));
 	console.log("connected to mongodb");
+	  acl.allow([{
+    roles : 'user',
+    allows : [{
+      resources: '/blogs',
+      permissions: ['get', 'put', 'delete']
+    }]
+  }]);
   });
-*/
+
 var app = express();
 
 // view engine setup
@@ -46,33 +56,42 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'client')));
 app.use(passport.initialize());
 app.use(passport.session());
+/*app.all('/*', function(req, res, next) {
+	console.log("ssssssssssssssssss");
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', '*');
+	res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,HEAD,DELETE,OPTIONS');
+    next();
+});*/
+
 
 app.use('/', index);
+
 app.use('/auth', authenticate);
-app.use('/blogs',acl.middleware(),blogs);
-
-//allow cross origin request
-app.all('/*', function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "X-Requested-With");
-  next();
-});
-//var auth = function(req, res, next){ if (!req.isAuthenticated()) res.send(401); else next(); };
-
-//app.use('/api', api);
+app.use('/blogs',blogs);
 
 // catch 404 and forward to error handler
+/*
 app.use(function(req, res, next) {
     var err = new Error('Not Found');
     err.status = 404;
     next(err);
 });
-
+*/
 //// Initialize Passport
 var initPassport = require('./server/passport-init');
 initPassport(passport);
 
-acl.allow([
+
+/*console.log("here");			
+		acl.isAllowed('m1', 'blogs', 'view', function(err, res){
+    if(res){
+        console.log("User ,1 is allowed to view blogs");
+    }
+	else{
+		console.log("not allowed");
+		}});*/
+/*acl.allow([
     {
         roles:['user'], 
         allows:[
@@ -80,12 +99,13 @@ acl.allow([
         ]
     }
 ]);
-
+*/
 
 // error handlers
 
 // development error handler
 // will print stacktrace
+/*
 if (app.get('env') === 'development') {
     app.use(function(err, req, res, next) {
         res.status(err.status || 500);
@@ -95,9 +115,10 @@ if (app.get('env') === 'development') {
         });
     });
 }
-
+*/
 // production error handler
 // no stacktraces leaked to user
+/*
 app.use(function(err, req, res, next) {
 	console.log("bb");
     res.status(err.status || 500);
@@ -107,6 +128,6 @@ app.use(function(err, req, res, next) {
     });
 });
 
-
+*/
 module.exports = app;
 

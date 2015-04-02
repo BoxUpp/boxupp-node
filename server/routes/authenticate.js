@@ -15,6 +15,7 @@ module.exports = function(passport){
 	@method auth/success
 	*/
 	router.get('/success', function(req, res){
+		
 		console.log("inside success");
 		console.log("session info: "+JSON.stringify(req.session));
 		res.send({state: 'success', user: req.user ? req.user : null});
@@ -54,10 +55,17 @@ module.exports = function(passport){
 
 	router.get('/github/callback', 
 			passport.authenticate('github', { 
-				successRedirect: '/auth/success',
-				failureRedirect: '/auth/failure' 
+				successRedirect: '/auth/github/success',
+				failureRedirect: '/auth/github/failure' 
 			}));
-
+	router.get('/github/success', function(req, res){
+			console.log("session info: "+JSON.stringify(req.session));
+			res.redirect('/');
+		});
+	router.get('/github/failure', function(req, res){
+			res.redirect('/');
+	});
+		
 	/**
 	 * Sign out
 	@method auth/sigout
@@ -66,7 +74,11 @@ module.exports = function(passport){
 		req.logout();
 		res.redirect('/');
 	});
-
+	
+	router.get('/session', function(req, res){
+			res.send(req.session.passport.user);
+	});
+	
 	return router;
 
 }

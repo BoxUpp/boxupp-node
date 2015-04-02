@@ -46,7 +46,7 @@ module.exports = function(passport){
 	passport.use('login', new LocalStrategy({
 			passReqToCallback : true
 		},
-		function(req, username, password, done) { 
+		function(req, username, password, done) {
 			// check in mongo if a user with username exists or not
 			User.findOne({ 'username' :  username }, 
 				function(err, user) {
@@ -66,6 +66,7 @@ module.exports = function(passport){
 					}
 					// User and password both match, return user from done method
 					// which will be treated like success
+					//req.session.userId = user._id;
 					return done(null, user);
 				}
 			);
@@ -102,17 +103,17 @@ module.exports = function(passport){
 					newUser.password = createHash(password);
 
 					// save the user
-					newUser.save(function(err) {
+					newUser.save(function(err,user) {
 						if (err){
 							log.error(err);  
 							throw err;  
 						}
 						acl = new acl(new acl.mongodbBackend(mongoose.connection.db,'_acl'));
-
-						console.log(newUser.username + ' Registration succesful');    
-						acl.addUserRoles( newUser.username, 'user', function(err){
-						console.log("setting role = user");
+						console.log(user.username + ' Registration succesful');    
+						acl.addUserRoles(user._id.toString(), 'user', function(err){							
+						console.log("setting role = user  error"+err);
 						});
+						
 						return done(null, newUser);
 					});
 				}
@@ -138,7 +139,6 @@ module.exports = function(passport){
 				log.error(err);
                 return done(err);
             }
-			console.log("user details: "+JSON.stringify(profile));
             //No user was found... so create a new user with values from Facebook (all the profile. stuff)
             if (!user) {
                 user = new User({
@@ -157,6 +157,7 @@ module.exports = function(passport){
                 });
             } else {
                 //found user. Return
+				
                 return done(err, user);
             }
         });

@@ -1,6 +1,25 @@
 var app = angular.module('mainApp', ['ngRoute', 'ngResource']).run(function($rootScope,$http) {
-	$rootScope.authenticated = false;
-	$rootScope.current_user = '';
+	//$rootScope.authenticated = false;
+	//$rootScope.current_user = '';
+	var getSessionState = function(){
+		
+		 $http.get('/auth/session').success(function(data){
+      if(data){
+        $rootScope.authenticated = true;
+     //   $rootScope.current_user = data.user.username;
+      }
+      else{
+       	$rootScope.authenticated = false;
+	    $rootScope.current_user = '';
+      }
+    });};
+		getSessionState();
+  $rootScope.signout = function(){
+    	$http.get('auth/signout');
+    	$rootScope.authenticated = false;
+    	$rootScope.current_user = '';
+		$location.path("/login");
+	};
 
 });
 
@@ -27,8 +46,22 @@ app.config(function($routeProvider){
 	});
 });
 
-app.controller('mainController', function($scope, $rootScope){
-	
+app.controller('mainController', function($scope, $rootScope,$http,$location){
+	$scope.githubLogin=function(){
+		console.log('called');
+		$http.get('/auth/github').success(function(data){
+      if(data.state == 'success'){
+		  alert("success");
+        $rootScope.authenticated = true;
+       // $rootScope.current_user = data.user.username;
+        $location.path('/');
+      }
+      else{
+		  console.log(data);
+        $scope.error_message = data.message;
+      }
+    });
+	};
 });
 
 app.controller('authController', function($scope, $http, $rootScope, $location){
